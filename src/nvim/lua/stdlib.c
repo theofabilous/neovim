@@ -56,6 +56,23 @@ static int regex_match(lua_State *lstate, regprog_T **prog, char *str)
   if (match) {
     lua_pushinteger(lstate, (lua_Integer)(rm.startp[0] - str));
     lua_pushinteger(lstate, (lua_Integer)(rm.endp[0] - str));
+
+    int num_captures = 0;
+    for (int i = 1; i < NSUBEXP && rm.startp[i] != NULL; i++) {
+      num_captures++;
+    }
+    if (num_captures > 0) {
+      lua_createtable(lstate, num_captures, 0);
+      for (int i = 1; i <= num_captures; i++) {
+        lua_createtable(lstate, 2, 0);
+        lua_pushinteger(lstate, (lua_Integer)(rm.startp[i] - str));
+        lua_rawseti(lstate, -2, 1);
+        lua_pushinteger(lstate, (lua_Integer)(rm.endp[i] - str));
+        lua_rawseti(lstate, -2, 2);
+        lua_rawseti(lstate, -2, i);
+      }
+      return 3;
+    }
     return 2;
   }
   return 0;
