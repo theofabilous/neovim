@@ -18,8 +18,9 @@ local regex = {} -- luacheck: no unused
 
 --- Match the string against the regex. If the string should match the regex
 --- precisely, surround the regex with `^` and `$`. If there was a match, the
---- byte indices for the beginning and end of the match are returned. When
---- there is no match, `nil` is returned. Because any integer is "truthy",
+--- byte indices for the beginning and end of the match are returned. If the
+--- match contains captures, a table of submatch byte ranges is also returned.
+--- When there is no match, `nil` is returned. Because any integer is "truthy",
 --- `regex:match_str()` can be directly used as a condition in an if-statement.
 --- @param str string
 function regex:match_str(str) end
