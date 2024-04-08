@@ -45,6 +45,89 @@
 # include "lua/stdlib.c.generated.h"
 #endif
 
+// static int regex_match_buf_multi(lua_State *lstate)
+// {
+//   regprog_T **prog = regex_check(lstate);
+//
+//   int narg = lua_gettop(lstate);
+//   if (narg < 3) {
+//     return luaL_error(lstate, "not enough args");
+//   }
+//
+//   handle_T bufnr = (handle_T)luaL_checkinteger(lstate, 2);
+//   linenr_T rownr = (linenr_T)luaL_checkinteger(lstate, 3);
+//   colnr_T colnr = (colnr_T)luaL_checkinteger(lstate, 4);
+//
+//   buf_T *buf = bufnr ? handle_get_buffer(bufnr) : curbuf;
+//   if (!buf || buf->b_ml.ml_mfp == NULL) {
+//     return luaL_error(lstate, "invalid buffer");
+//   }
+//
+//   regmmatch_T rmm;
+//   rmm.regprog = *prog;
+//   rmm.rmm_ic = false;
+//   rmm.rmm_maxcol = 0; // todo: make this configurable?
+//
+//   int num_lines = vim_regexec_multi(&rmm, 
+// }
+
+static int regex_match_nl(lua_State *lstate, regprog_T **prog, char *str)
+{
+  regmatch_T rm;
+  rm.regprog = *prog;
+  rm.rm_ic = false;
+  bool match = vim_regexec_nl(&rm, str, 0);
+  *prog = rm.regprog;
+
+  if (match) {
+  }
+}
+
+static int regex_match_multi(lua_State *lstate, regprog_T **prog, buf_T *buf,
+                             linenr_T lnum, colnr_T start)
+{
+  regmmatch_T rmm;
+  rmm.regprog = *prog;
+  rmm.rmm_ic = false;
+  rmm.rmm_maxcol = 0;
+
+  int num_lines = vim_regexec_multi(&rmm, NULL, buf, lnum, start, NULL, NULL);
+  *prog = rmm.regprog;
+
+  if (num_lines > 0) {
+#define PUSH_MATCH(i)                                             \
+    lua_createtable(lstate, 0, 4);                                \
+    lua_pushliteral(lstate, "start_row");                         \
+    lua_pushinteger(lstate, (lua_Integer)rmm.startpos[(i)].lnum); \
+    lua_rawset(lstate, -3);                                       \
+    lua_pushliteral(lstate, "start_col");                         \
+    lua_pushinteger(lstate, (lua_Integer)rmm.startpos[(i)].col);  \
+    lua_rawset(lstate, -3);                                       \
+    lua_createtable(lstate, 0, 4);                                \
+    lua_pushliteral(lstate, "end_row");                           \
+    lua_pushinteger(lstate, (lua_Integer)rmm.endpos[(i)].lnum);   \
+    lua_rawset(lstate, -3);                                       \
+    lua_pushliteral(lstate, "end_col");                           \
+    lua_pushinteger(lstate, (lua_Integer)rmm.endpos[(i)].col);    \
+    lua_rawset(lstate, -3);
+
+    PUSH_MATCH(0);
+    int num_captures = 0;
+    for (int i = 1; i < NSUBEXP && rmm.startpos[i].lnum >= 0; i++) {
+      num_captures++;
+    }
+    lua_createtable(lstate, num_captures, 0);
+    int capture_tbl = lua_gettop(lstate);
+    for (int i = 1; i <= num_captures; i++) {
+      PUSH_MATCH(i);
+      lua_rawseti(lstate, capture_tbl, i);
+    }
+    return 2;
+#undef PUSH_MATCH
+  }
+  return 0;
+}
+
 static int regex_match(lua_State *lstate, regprog_T **prog, char *str)
 {
   regmatch_T rm;
