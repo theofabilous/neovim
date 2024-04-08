@@ -2938,12 +2938,41 @@ describe('lua stdlib', function()
   end)
 
   it('vim.regex', function()
-    exec_lua [[
-      re1 = vim.regex"ab\\+c"
+    exec_lua [=[
+      re1 = vim.regex[[ab\+c]]
+      re2 = vim.regex[[a\(b*\)c]]
+      re3 = vim.regex[[a\(b\)*c]]
       vim.cmd "set nomagic ignorecase"
-      re2 = vim.regex"xYz"
-    ]]
+      re4 = vim.regex"xYz"
+    ]=]
     eq({}, exec_lua [[return {re1:match_str("x ac")}]])
+
+    -- captures of the form `\(...*\)`, \(...?\)`, etc. create an
+    -- empty (0-length) capture
+    eq(
+      exec_lua [=[return select(3, re2:match_str("x ac"))[1]]=],
+      exec_lua [=[return {vim.regex[[a\zsb*\zec]]:match_str("x ac")}]=]
+    )
+    eq({ 0, 2, { { 1, 1 } } }, exec_lua [[return {re2:match_str("ac")}]])
+    eq(
+      { 0, 2, { { 1, 1 } } },
+      exec_lua [=[
+        return {vim.regex[[a\(b\?\)c]]:match_str("ac")}
+      ]=]
+    )
+
+    -- the form `\(...\)*` does not create any captures in the
+    -- 0-length case
+    eq({ 2, 4 }, exec_lua [[return {re3:match_str("x ac")}]])
+
+    eq({ 2, 5, { { 3, 4 } } }, exec_lua [[return {re3:match_str("x abc")}]])
+    eq({ 2, 6, { { 4, 5 } } }, exec_lua [[return {re3:match_str("x abbc")}]])
+    eq(
+      { 2, 6, { { 3, 4 }, { 4, 5 } } },
+      exec_lua [=[
+        return {vim.regex[[a\(b\)\(b\)c]]:match_str("x abbc")}
+      ]=]
+    )
     eq({ 3, 7 }, exec_lua [[return {re1:match_str("ac abbc")}]])
 
     api.nvim_buf_set_lines(0, 0, -1, true, { 'yy', 'abc abbc' })
