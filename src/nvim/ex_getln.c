@@ -184,7 +184,12 @@ typedef struct {
   bool save_hls;
   cmdmod_T save_cmdmod;
   garray_T save_view;
+  exarg_T ea;
+  CmdParseInfo cmdinfo;
+  bool enabled;
 } CpInfo;
+
+static CpInfo cp_info;
 
 /// Return value when handling keys in command-line mode.
 enum {
@@ -2494,6 +2499,11 @@ static void cmdpreview_restore_state(CpInfo *cpinfo)
   kv_destroy(cpinfo->buf_info);
 }
 
+static bool cmdpreview_show(CommandLineState *s, bool refresh)
+{
+  return true;
+}
+
 /// Show 'inccommand' preview if command is previewable. It works like this:
 ///    1. Store current undo information so we can revert to current state later.
 ///    2. Execute the preview callback with the parsed command, preview buffer number and preview
@@ -2538,7 +2548,7 @@ static bool cmdpreview_may_show(CommandLineState *s)
     ea.line2 = lnum;
   }
 
-  CpInfo cpinfo;
+  /*CpInfo cpinfo;*/
   bool icm_split = *p_icm == 's';  // inccommand=split
   buf_T *cmdpreview_buf = NULL;
   win_T *cmdpreview_win = NULL;
@@ -2549,7 +2559,7 @@ static bool cmdpreview_may_show(CommandLineState *s)
   block_autocmds();              // Block events
 
   // Save current state and prepare for command preview.
-  cmdpreview_prepare(&cpinfo);
+  cmdpreview_prepare(&cp_info);
 
   // Open preview buffer if inccommand=split.
   if (icm_split && (cmdpreview_buf = cmdpreview_open_buf()) == NULL) {
@@ -2597,7 +2607,7 @@ static bool cmdpreview_may_show(CommandLineState *s)
   }
 
   // Restore state.
-  cmdpreview_restore_state(&cpinfo);
+  cmdpreview_restore_state(&cp_info);
 
   unblock_autocmds();                  // Unblock events
   msg_silent--;                        // Unblock messages
@@ -2605,7 +2615,7 @@ static bool cmdpreview_may_show(CommandLineState *s)
   redrawcmdline();
 end:
   xfree(cmdline);
-  return cmdpreview_type != 0;
+  return (cp_info.enabled = (cmdpreview_type != 0));
 }
 
 /// Trigger CmdlineChanged autocommands.
