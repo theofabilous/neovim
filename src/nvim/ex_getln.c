@@ -2381,6 +2381,18 @@ static void cmdpreview_prepare(CpInfo *cpinfo)
 {
   Set(ptr_t) saved_bufs = SET_INIT;
 
+  if (cpinfo->enabled) {
+    cmdpreview_restore_state(cpinfo);
+    if (cpinfo->save_view.ga_data != NULL) {
+      ga_clear(&cpinfo->save_view);
+    }
+    if (cpinfo->win_info.items != NULL) {
+      kv_destroy(cpinfo->win_info);
+    }
+    if (cpinfo->buf_info.items != NULL) {
+      kv_destroy(cpinfo->buf_info);
+    }
+  }
   kv_init(cpinfo->buf_info);
   kv_init(cpinfo->win_info);
 
@@ -2692,11 +2704,17 @@ static bool cmdpreview_may_show(bool redrawing)
     msg_silent++;                  // Block messages, namely ones that prompt
     block_autocmds();              // Block events
 
-    if (!cp_info->enabled) {
-      // Save current state and prepare for command preview.
-      cmdpreview_prepare(cp_info);
-      need_cleanup = true;
-    }
+    // Save current state and prepare for command preview.
+    // If cmdpreview currently enabled, the previous state is restored, and the current
+    // state is saved again
+    cmdpreview_prepare(cp_info);
+    need_cleanup = true;
+
+    /*if (!cp_info->enabled) {*/
+    /*  // Save current state and prepare for command preview.*/
+    /*  cmdpreview_prepare(cp_info);*/
+    /*  need_cleanup = true;*/
+    /*}*/
   }
 
   // Open preview buffer if inccommand=split.
