@@ -2581,8 +2581,6 @@ static void cmdpreview_info_init(CpInfo *cpinfo)
     .save_hls = false,
     .save_cmdmod = { 0 },
     .save_view = { 0 },
-    /*.ea = { 0 },*/
-    /*.cmdline = NULL,*/
     .cmdinfo = { 0 },
     .enabled = false,
     .did_prepare = false,
@@ -2619,7 +2617,6 @@ bool cmdpreview_may_refresh(int redraw_type)
 
   if (need_refresh) {
     RedrawingDisabled++;
-    /*cmdpreview_close();*/
     cmdpreview_may_show(true);
     RedrawingDisabled--;
   }
@@ -2677,10 +2674,7 @@ static bool cmdpreview_may_show(bool redrawing)
     ea.line2 = lnum;
   }
 
-  /*bool icm_split = *p_icm == 's';  // inccommand=split*/
   cp_info->icm_split = *p_icm == 's';  // inccommand=split
-  /*cp_info->cmdpreview_buf = NULL;*/
-  /*cp_info->cmdpreview_win = NULL;*/
 
   emsg_silent++;                 // Block error reporting as the command may be incomplete,
                                  // but still update v:errmsg
@@ -2692,12 +2686,6 @@ static bool cmdpreview_may_show(bool redrawing)
   // state is saved again
   cmdpreview_prepare(cp_info);
   need_cleanup = true;
-
-  /*if (!cp_info->enabled) {*/
-  /*  // Save current state and prepare for command preview.*/
-  /*  cmdpreview_prepare(cp_info);*/
-  /*  need_cleanup = true;*/
-  /*}*/
 
   // Open preview buffer if inccommand=split.
   if (cp_info->icm_split && (cp_info->cmdpreview_buf = cmdpreview_open_buf()) == NULL) {
@@ -2726,12 +2714,6 @@ static bool cmdpreview_may_show(bool redrawing)
   }
   cp_info->enabled = (cp_info->cmdpreview_type != 0);
 
-  /*// If inccommand=split and preview callback returns 2, open preview window.*/
-  /*if (cp_info->icm_split && cp_info->cmdpreview_type == 2*/
-  /*    && (cp_info->cmdpreview_win = cmdpreview_open_win(cp_info->cmdpreview_buf)) == NULL) {*/
-  /*  // If there's not enough room to open the preview window, just preview without the window.*/
-  /*  cp_info->cmdpreview_type = 1;*/
-  /*}*/
   // If inccommand=split and preview callback returns 2, open preview window.
   if (cp_info->icm_split && cp_info->cmdpreview_type == 2) {
     if (cp_info->cmdpreview_win == NULL) {
@@ -2745,7 +2727,6 @@ static bool cmdpreview_may_show(bool redrawing)
 
   // If preview callback return value is nonzero, update screen now.
   if (!redrawing && cp_info->enabled) {
-  /*if (cp_info->cmdpreview_type != 0) {*/
     int save_rd = RedrawingDisabled;
     RedrawingDisabled = 0;
     update_screen();
