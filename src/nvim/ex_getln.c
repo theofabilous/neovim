@@ -2646,7 +2646,7 @@ static bool cmdpreview_may_show(bool redrawing)
   cmdpreview_may_show_level++;
   assert(cp_info != NULL);
 
-  bool need_cleanup = cp_info->enabled;
+  bool was_enabled = cp_info->enabled;
 
   cp_info->cmdpreview_type = 0;
 
@@ -2658,7 +2658,6 @@ static bool cmdpreview_may_show(bool redrawing)
   const char *errormsg = NULL;
   emsg_off++;  // Block errors when parsing the command line, and don't update v:errmsg
   if (!parse_cmdline(cmdline, &ea, &cmdinfo, &errormsg)) {
-    need_cleanup = true;
     emsg_off--;
     goto end;
   }
@@ -2667,7 +2666,6 @@ static bool cmdpreview_may_show(bool redrawing)
   // Check if command is previewable, if not, don't attempt to show preview
   if (!(ea.argt & EX_PREVIEW)) {
     undo_cmdmod(&cmdinfo.cmdmod);
-    need_cleanup = true;
     goto end;
   }
 
@@ -2689,7 +2687,6 @@ static bool cmdpreview_may_show(bool redrawing)
   // If cmdpreview currently enabled, the previous state is restored, and the current
   // state is saved again
   cmdpreview_prepare(cp_info);
-  need_cleanup = true;
 
   // Open preview buffer if inccommand=split.
   if (cp_info->icm_split && (cp_info->cmdpreview_buf = cmdpreview_open_buf()) == NULL) {
@@ -2743,7 +2740,7 @@ static bool cmdpreview_may_show(bool redrawing)
 
 end:
   xfree(cmdline);
-  if (need_cleanup && !cp_info->enabled) {
+  if ((was_enabled || cp_info->did_prepare) && !cp_info->enabled) {
     cmdpreview_close();
   }
   cmdpreview_may_show_level--;
