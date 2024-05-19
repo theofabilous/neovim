@@ -46,6 +46,7 @@
 #include "nvim/highlight_defs.h"
 #include "nvim/highlight_group.h"
 #include "nvim/keycodes.h"
+#include "nvim/log.h"
 #include "nvim/macros_defs.h"
 #include "nvim/map_defs.h"
 #include "nvim/mapping.h"
@@ -2482,7 +2483,7 @@ static void cmdpreview_restore_state(CpInfo *cpinfo)
       }
       // Undo invisibly. This also moves the cursor!
       if (!u_undo_and_forget(count, false)) {
-        abort();
+        /*abort();*/
       }
       aucmd_restbuf(&aco);
     }
@@ -2673,6 +2674,7 @@ static bool cmdpreview_may_show(bool redrawing)
 
     cp_info->cmdpreview_type = 0;
     cp_info->cmdline = xstrdup(ccline.cmdbuff);
+    DLOGN("saved cmdline: `%s`\n", cp_info->cmdline);
 
     const char *errormsg = NULL;
     emsg_off++;  // Block errors when parsing the command line, and don't update v:errmsg
@@ -2682,6 +2684,7 @@ static bool cmdpreview_may_show(bool redrawing)
       goto end;
     }
     emsg_off--;
+    DLOGN("saved earg: `%s`\n", cp_info->ea.arg);
 
     // Check if command is previewable, if not, don't attempt to show preview
     if (!(ea->argt & EX_PREVIEW)) {
@@ -2703,6 +2706,9 @@ static bool cmdpreview_may_show(bool redrawing)
     /*cp_info->cmdpreview_win = NULL;*/
 
   }
+
+  DLOGN("using saved cmdline: `%s`\n", cp_info->cmdline);
+  DLOGN("using saved earg: `%s`\n", cp_info->ea.arg);
   emsg_silent++;                 // Block error reporting as the command may be incomplete,
                                  // but still update v:errmsg
   msg_silent++;                  // Block messages, namely ones that prompt
@@ -2741,6 +2747,7 @@ static bool cmdpreview_may_show(bool redrawing)
   try_start();
   cp_info->cmdpreview_type = execute_cmd(ea, &cp_info->cmdinfo, true);
   if (try_end(&err)) {
+    DLOGN("error occured during cmdpreview: `%s`\n", err.msg == NULL ? "??" : err.msg);
     api_clear_error(&err);
     cp_info->cmdpreview_type = 0;
   }
