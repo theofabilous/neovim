@@ -2458,6 +2458,12 @@ static void cmdpreview_restore_state(CpInfo *cpinfo)
     CpBufInfo cp_bufinfo = cpinfo->buf_info.items[i];
     buf_T *buf = cp_bufinfo.buf;
 
+    if (buf->b_flags & BF_NEVERLOADED) {
+      DLOGN("buffer was never loaded: %d\n", buf->handle);
+      /*buf_freeall(buf, BFA_DEL | BFA_WIPE);*/
+      continue;
+    }
+
     buf->b_changed = cp_bufinfo.save_b_changed;
 
     // Clear preview highlights.
@@ -2478,9 +2484,7 @@ static void cmdpreview_restore_state(CpInfo *cpinfo)
         u_sync(true);
       }
       // Undo invisibly. This also moves the cursor!
-      if (!u_undo_and_forget(count, false)) {
-        abort();
-      }
+      assert(u_undo_and_forget(count, false));
       aucmd_restbuf(&aco);
     }
 
