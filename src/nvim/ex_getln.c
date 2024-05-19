@@ -2591,7 +2591,7 @@ static void cmdpreview_info_init(CpInfo *cpinfo)
 
 bool cmdpreview_may_refresh(int redraw_type)
 {
-  if (cmdpreview_may_show_level > 0 || !cp_info->enabled) {
+  if (cp_info == NULL || cmdpreview_may_show_level > 0 || !cp_info->enabled) {
     return false;
   }
 
