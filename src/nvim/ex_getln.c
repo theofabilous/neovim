@@ -185,9 +185,6 @@ typedef struct {
   bool save_hls;
   cmdmod_T save_cmdmod;
   garray_T save_view;
-
-  exarg_T ea;
-  char *cmdline;
   CmdParseInfo cmdinfo;
   bool enabled;
   bool did_prepare;
@@ -2558,17 +2555,8 @@ static void cmdpreview_close(void)
   redrawcmdline();
 
 end:
-  cmdpreview_free_cmdline(cp_info);
   cmdpreview_free_info(cp_info);
   cmdpreview_info_init(cp_info);
-}
-
-static inline void cmdpreview_free_cmdline(CpInfo *cpinfo)
-{
-  if (cpinfo->cmdline != NULL) {
-    xfree(cpinfo->cmdline);
-    cpinfo->cmdline = NULL;
-  }
 }
 
 static inline void cmdpreview_free_info(CpInfo *cpinfo)
@@ -2593,8 +2581,8 @@ static void cmdpreview_info_init(CpInfo *cpinfo)
     .save_hls = false,
     .save_cmdmod = { 0 },
     .save_view = { 0 },
-    .ea = { 0 },
-    .cmdline = NULL,
+    /*.ea = { 0 },*/
+    /*.cmdline = NULL,*/
     .cmdinfo = { 0 },
     .enabled = false,
     .did_prepare = false,
@@ -2660,19 +2648,15 @@ static bool cmdpreview_may_show(bool redrawing)
   assert(cp_info != NULL);
 
   bool need_cleanup = cp_info->enabled;
-  exarg_T *ea = &cp_info->ea;
-
-  /*if (need_cleanup) {*/
-  /*  assert(cp_info->cmdpreview_type != 0);*/
-    cmdpreview_free_cmdline(cp_info);
-  /*}*/
 
   cp_info->cmdpreview_type = 0;
-  cp_info->cmdline = xstrdup(ccline.cmdbuff);
+
+  exarg_T ea;
+  char *cmdline = xstrdup(ccline.cmdbuff);
 
   const char *errormsg = NULL;
   emsg_off++;  // Block errors when parsing the command line, and don't update v:errmsg
-  if (!parse_cmdline(cp_info->cmdline, ea, &cp_info->cmdinfo, &errormsg)) {
+  if (!parse_cmdline(cmdline, &ea, &cp_info->cmdinfo, &errormsg)) {
     need_cleanup = true;
     emsg_off--;
     goto end;
@@ -2680,17 +2664,17 @@ static bool cmdpreview_may_show(bool redrawing)
   emsg_off--;
 
   // Check if command is previewable, if not, don't attempt to show preview
-  if (!(ea->argt & EX_PREVIEW)) {
+  if (!(ea.argt & EX_PREVIEW)) {
     undo_cmdmod(&cp_info->cmdinfo.cmdmod);
     need_cleanup = true;
     goto end;
   }
 
   // Swap invalid command range if needed
-  if ((ea->argt & EX_RANGE) && ea->line1 > ea->line2) {
-    linenr_T lnum = ea->line1;
-    ea->line1 = ea->line2;
-    ea->line2 = lnum;
+  if ((ea.argt & EX_RANGE) && ea.line1 > ea.line2) {
+    linenr_T lnum = ea.line1;
+    ea.line1 = ea.line2;
+    ea.line2 = lnum;
   }
 
   /*bool icm_split = *p_icm == 's';  // inccommand=split*/
@@ -2734,7 +2718,7 @@ static bool cmdpreview_may_show(bool redrawing)
   // the preview.
   Error err = ERROR_INIT;
   try_start();
-  cp_info->cmdpreview_type = execute_cmd(ea, &cp_info->cmdinfo, true);
+  cp_info->cmdpreview_type = execute_cmd(&ea, &cp_info->cmdinfo, true);
   if (try_end(&err)) {
     DLOGN("error occured during cmdpreview: `%s`\n", err.msg == NULL ? "??" : err.msg);
     api_clear_error(&err);
@@ -2773,6 +2757,7 @@ static bool cmdpreview_may_show(bool redrawing)
   emsg_silent--;
 
 end:
+  xfree(cmdline);
   if (need_cleanup && !cp_info->enabled) {
     cmdpreview_close();
   }
