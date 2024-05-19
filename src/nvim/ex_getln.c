@@ -2515,11 +2515,6 @@ static void cmdpreview_restore_state(CpInfo *cpinfo)
   /*kv_destroy(cpinfo->buf_info);*/
 }
 
-static bool cmdpreview_show(CommandLineState *s, bool refresh)
-{
-  return true;
-}
-
 static void cmdpreview_close(void)
 {
   bool need_close_win = cp_info->icm_split
