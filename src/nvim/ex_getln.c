@@ -2702,23 +2702,23 @@ static bool cmdpreview_may_show(bool redrawing)
     /*cp_info->cmdpreview_buf = NULL;*/
     /*cp_info->cmdpreview_win = NULL;*/
 
-    emsg_silent++;                 // Block error reporting as the command may be incomplete,
-                                   // but still update v:errmsg
-    msg_silent++;                  // Block messages, namely ones that prompt
-    block_autocmds();              // Block events
-
-    // Save current state and prepare for command preview.
-    // If cmdpreview currently enabled, the previous state is restored, and the current
-    // state is saved again
-    cmdpreview_prepare(cp_info);
-    need_cleanup = true;
-
-    /*if (!cp_info->enabled) {*/
-    /*  // Save current state and prepare for command preview.*/
-    /*  cmdpreview_prepare(cp_info);*/
-    /*  need_cleanup = true;*/
-    /*}*/
   }
+  emsg_silent++;                 // Block error reporting as the command may be incomplete,
+                                 // but still update v:errmsg
+  msg_silent++;                  // Block messages, namely ones that prompt
+  block_autocmds();              // Block events
+
+  // Save current state and prepare for command preview.
+  // If cmdpreview currently enabled, the previous state is restored, and the current
+  // state is saved again
+  cmdpreview_prepare(cp_info);
+  need_cleanup = true;
+
+  /*if (!cp_info->enabled) {*/
+  /*  // Save current state and prepare for command preview.*/
+  /*  cmdpreview_prepare(cp_info);*/
+  /*  need_cleanup = true;*/
+  /*}*/
 
   // Open preview buffer if inccommand=split.
   if (cp_info->icm_split && (cp_info->cmdpreview_buf = cmdpreview_open_buf()) == NULL) {

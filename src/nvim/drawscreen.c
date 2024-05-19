@@ -464,7 +464,7 @@ int update_screen(void)
                    // display updating
 
   if (cmdpreview_may_refresh(type)) {
-    type = must_redraw;
+    type = MAX(type, must_redraw);
   }
 
   // glyph cache full, very rare
