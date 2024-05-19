@@ -2662,53 +2662,42 @@ static bool cmdpreview_may_show(bool redrawing)
   bool need_cleanup = cp_info->enabled;
   exarg_T *ea = &cp_info->ea;
 
-  if (redrawing) {
-    if (!cp_info->enabled) {
-      goto end;
-    }
-  } else /* !redrawing */ {
-    if (need_cleanup) {
-      assert(cp_info->cmdpreview_type != 0);
-      cmdpreview_free_cmdline(cp_info);
-    }
+  /*if (need_cleanup) {*/
+  /*  assert(cp_info->cmdpreview_type != 0);*/
+    cmdpreview_free_cmdline(cp_info);
+  /*}*/
 
-    cp_info->cmdpreview_type = 0;
-    cp_info->cmdline = xstrdup(ccline.cmdbuff);
-    DLOGN("saved cmdline: `%s`\n", cp_info->cmdline);
+  cp_info->cmdpreview_type = 0;
+  cp_info->cmdline = xstrdup(ccline.cmdbuff);
 
-    const char *errormsg = NULL;
-    emsg_off++;  // Block errors when parsing the command line, and don't update v:errmsg
-    if (!parse_cmdline(cp_info->cmdline, ea, &cp_info->cmdinfo, &errormsg)) {
-      need_cleanup = true;
-      emsg_off--;
-      goto end;
-    }
+  const char *errormsg = NULL;
+  emsg_off++;  // Block errors when parsing the command line, and don't update v:errmsg
+  if (!parse_cmdline(cp_info->cmdline, ea, &cp_info->cmdinfo, &errormsg)) {
+    need_cleanup = true;
     emsg_off--;
-    DLOGN("saved earg: `%s`\n", cp_info->ea.arg);
+    goto end;
+  }
+  emsg_off--;
 
-    // Check if command is previewable, if not, don't attempt to show preview
-    if (!(ea->argt & EX_PREVIEW)) {
-      undo_cmdmod(&cp_info->cmdinfo.cmdmod);
-      need_cleanup = true;
-      goto end;
-    }
-
-    // Swap invalid command range if needed
-    if ((ea->argt & EX_RANGE) && ea->line1 > ea->line2) {
-      linenr_T lnum = ea->line1;
-      ea->line1 = ea->line2;
-      ea->line2 = lnum;
-    }
-
-    /*bool icm_split = *p_icm == 's';  // inccommand=split*/
-    cp_info->icm_split = *p_icm == 's';  // inccommand=split
-    /*cp_info->cmdpreview_buf = NULL;*/
-    /*cp_info->cmdpreview_win = NULL;*/
-
+  // Check if command is previewable, if not, don't attempt to show preview
+  if (!(ea->argt & EX_PREVIEW)) {
+    undo_cmdmod(&cp_info->cmdinfo.cmdmod);
+    need_cleanup = true;
+    goto end;
   }
 
-  DLOGN("using saved cmdline: `%s`\n", cp_info->cmdline);
-  DLOGN("using saved earg: `%s`\n", cp_info->ea.arg);
+  // Swap invalid command range if needed
+  if ((ea->argt & EX_RANGE) && ea->line1 > ea->line2) {
+    linenr_T lnum = ea->line1;
+    ea->line1 = ea->line2;
+    ea->line2 = lnum;
+  }
+
+  /*bool icm_split = *p_icm == 's';  // inccommand=split*/
+  cp_info->icm_split = *p_icm == 's';  // inccommand=split
+  /*cp_info->cmdpreview_buf = NULL;*/
+  /*cp_info->cmdpreview_win = NULL;*/
+
   emsg_silent++;                 // Block error reporting as the command may be incomplete,
                                  // but still update v:errmsg
   msg_silent++;                  // Block messages, namely ones that prompt
