@@ -2384,9 +2384,7 @@ static void cmdpreview_prepare(CpInfo *cpinfo)
 
   if (cpinfo->did_prepare) {
     cmdpreview_restore_state(cpinfo);
-    ga_clear(&cpinfo->save_view);
-    kv_destroy(cpinfo->win_info);
-    kv_destroy(cpinfo->buf_info);
+    cmdpreview_free_info(cpinfo);
   }
   cpinfo->did_prepare = true;
 
@@ -2559,19 +2557,25 @@ static void cmdpreview_close(void)
   redrawcmdline();
 
 end:
-  cmdpreview_free_mem(cp_info);
+  cmdpreview_free_cmdline(cp_info);
+  cmdpreview_free_info(cp_info);
   cmdpreview_info_init(cp_info);
 }
 
-static void cmdpreview_free_mem(CpInfo *cpinfo)
+static inline void cmdpreview_free_cmdline(CpInfo *cpinfo)
 {
   if (cpinfo->cmdline != NULL) {
     xfree(cpinfo->cmdline);
     cpinfo->cmdline = NULL;
   }
+}
+
+static inline void cmdpreview_free_info(CpInfo *cpinfo)
+{
   if (cpinfo->save_view.ga_data != NULL) {
     ga_clear(&cpinfo->save_view);
   }
+
   if (cpinfo->win_info.items != NULL) {
     kv_destroy(cpinfo->win_info);
   }
@@ -2664,10 +2668,7 @@ static bool cmdpreview_may_show(bool redrawing)
   } else /* !redrawing */ {
     if (need_cleanup) {
       assert(cp_info->cmdpreview_type != 0);
-      if (cp_info->cmdline) {
-        xfree(cp_info->cmdline);
-        cp_info->cmdline = NULL;
-      }
+      cmdpreview_free_cmdline(cp_info);
     }
 
     cp_info->cmdpreview_type = 0;
