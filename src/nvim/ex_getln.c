@@ -189,6 +189,7 @@ typedef struct {
   char *cmdline;
   CmdParseInfo cmdinfo;
   bool enabled;
+  bool did_prepare;
   bool icm_split;
   int cmdpreview_type;
   buf_T *cmdpreview_buf;
@@ -2381,18 +2382,14 @@ static void cmdpreview_prepare(CpInfo *cpinfo)
 {
   Set(ptr_t) saved_bufs = SET_INIT;
 
-  if (cpinfo->enabled) {
+  if (cpinfo->did_prepare) {
     cmdpreview_restore_state(cpinfo);
-    if (cpinfo->save_view.ga_data != NULL) {
-      ga_clear(&cpinfo->save_view);
-    }
-    if (cpinfo->win_info.items != NULL) {
-      kv_destroy(cpinfo->win_info);
-    }
-    if (cpinfo->buf_info.items != NULL) {
-      kv_destroy(cpinfo->buf_info);
-    }
+    ga_clear(&cpinfo->save_view);
+    kv_destroy(cpinfo->win_info);
+    kv_destroy(cpinfo->buf_info);
   }
+  cpinfo->did_prepare = true;
+
   kv_init(cpinfo->buf_info);
   kv_init(cpinfo->win_info);
 
@@ -2456,6 +2453,9 @@ static void cmdpreview_prepare(CpInfo *cpinfo)
 static void cmdpreview_restore_state(CpInfo *cpinfo)
   FUNC_ATTR_NONNULL_ALL
 {
+  if (!cpinfo->did_prepare) {
+    return;
+  }
   // TODO(theofabilous): might need to store buffer handles
   // instead of buffer pointers, so that we can check if the associated
   // buffer still exists, also prob same thing for windows
@@ -2522,6 +2522,7 @@ static void cmdpreview_restore_state(CpInfo *cpinfo)
   restore_search_patterns();           // Restore search patterns
   win_size_restore(&cpinfo->save_view);        // Restore window sizes
 
+  cpinfo->did_prepare = false;
   /*ga_clear(&cpinfo->save_view);*/
   /*kv_destroy(cpinfo->win_info);*/
   /*kv_destroy(cpinfo->buf_info);*/
@@ -2532,7 +2533,7 @@ static void cmdpreview_close(void)
   bool need_close_win = cp_info->icm_split
     && cp_info->cmdpreview_type == 2
     && cp_info->cmdpreview_win != NULL;
-  if (!(need_close_win || cp_info->enabled)) {
+  if (!(need_close_win || cp_info->did_prepare)) {
     goto end;
   }
 
@@ -2591,6 +2592,7 @@ static void cmdpreview_info_init(CpInfo *cpinfo)
     .cmdline = NULL,
     .cmdinfo = { 0 },
     .enabled = false,
+    .did_prepare = false,
     .icm_split = false,
     .cmdpreview_type = 0,
     .cmdpreview_buf = NULL,
