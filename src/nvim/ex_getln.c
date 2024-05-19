@@ -185,7 +185,6 @@ typedef struct {
   bool save_hls;
   cmdmod_T save_cmdmod;
   garray_T save_view;
-  CmdParseInfo cmdinfo;
   bool enabled;
   bool did_prepare;
   bool icm_split;
@@ -2581,7 +2580,6 @@ static void cmdpreview_info_init(CpInfo *cpinfo)
     .save_hls = false,
     .save_cmdmod = { 0 },
     .save_view = { 0 },
-    .cmdinfo = { 0 },
     .enabled = false,
     .did_prepare = false,
     .icm_split = false,
@@ -2649,11 +2647,13 @@ static bool cmdpreview_may_show(bool redrawing)
   cp_info->cmdpreview_type = 0;
 
   exarg_T ea;
+  CmdParseInfo cmdinfo;
+  // Copy the command line so we can modify it.
   char *cmdline = xstrdup(ccline.cmdbuff);
 
   const char *errormsg = NULL;
   emsg_off++;  // Block errors when parsing the command line, and don't update v:errmsg
-  if (!parse_cmdline(cmdline, &ea, &cp_info->cmdinfo, &errormsg)) {
+  if (!parse_cmdline(cmdline, &ea, &cmdinfo, &errormsg)) {
     need_cleanup = true;
     emsg_off--;
     goto end;
@@ -2662,7 +2662,7 @@ static bool cmdpreview_may_show(bool redrawing)
 
   // Check if command is previewable, if not, don't attempt to show preview
   if (!(ea.argt & EX_PREVIEW)) {
-    undo_cmdmod(&cp_info->cmdinfo.cmdmod);
+    undo_cmdmod(&cmdinfo.cmdmod);
     need_cleanup = true;
     goto end;
   }
@@ -2706,7 +2706,7 @@ static bool cmdpreview_may_show(bool redrawing)
   // the preview.
   Error err = ERROR_INIT;
   try_start();
-  cp_info->cmdpreview_type = execute_cmd(&ea, &cp_info->cmdinfo, true);
+  cp_info->cmdpreview_type = execute_cmd(&ea, &cmdinfo, true);
   if (try_end(&err)) {
     DLOGN("error occured during cmdpreview: `%s`\n", err.msg == NULL ? "??" : err.msg);
     api_clear_error(&err);
