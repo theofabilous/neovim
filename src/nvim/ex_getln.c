@@ -2518,7 +2518,9 @@ static bool cmdpreview_show(CommandLineState *s, bool refresh)
 
 static void cmdpreview_close(void)
 {
-  bool need_close_win = (cp_info->icm_split && cp_info->cmdpreview_type == 2 && cp_info->cmdpreview_win != NULL);
+  bool need_close_win = cp_info->icm_split
+    && cp_info->cmdpreview_type == 2
+    && cp_info->cmdpreview_win != NULL;
   if (!(need_close_win || cp_info->enabled)) {
     goto end;
   }
@@ -2551,7 +2553,7 @@ end:
     xfree(cp_info->cmdline);
     cp_info->cmdline = NULL;
   }
-  cp_info = NULL;
+  /*cp_info = NULL;*/
 }
 
 static void cmdpreview_info_clear(CpInfo *cpinfo)
@@ -2593,7 +2595,15 @@ static void cmdpreview_info_clear(CpInfo *cpinfo)
 /// @return whether preview is shown or not.
 static bool cmdpreview_may_show(CommandLineState *s)
 {
-  if (cp_info && cp_info->enabled) {
+  assert(cp_info != NULL);
+
+  bool was_enabled = cp_info->enabled;
+  if (was_enabled) {
+    assert(cp_info->cmdpreview_type != 0);
+    if (cp_info->cmdline) {
+      xfree(cp_info->cmdline);
+      cp_info->cmdline = NULL;
+    }
   }
 
   cp_info->cmdpreview_type = 0;
@@ -2631,8 +2641,10 @@ static bool cmdpreview_may_show(CommandLineState *s)
   msg_silent++;                  // Block messages, namely ones that prompt
   block_autocmds();              // Block events
 
-  // Save current state and prepare for command preview.
-  cmdpreview_prepare(cp_info);
+  if (!was_enabled) {
+    // Save current state and prepare for command preview.
+    cmdpreview_prepare(cp_info);
+  }
 
   // Open preview buffer if inccommand=split.
   if (cp_info->icm_split && (cp_info->cmdpreview_buf = cmdpreview_open_buf()) == NULL) {
@@ -2737,6 +2749,7 @@ static int command_line_changed(CommandLineState *s)
     // 'inccommand' preview has been shown.
   } else {
     cmdpreview = false;
+    // TODO(theofabilous): do some cmdpreview cleanup here?
     if (prev_cmdpreview) {
       // TODO(bfredl): add an immediate redraw flag for cmdline mode which will trigger
       // at next wait-for-input
