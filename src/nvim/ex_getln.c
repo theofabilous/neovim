@@ -2647,7 +2647,6 @@ static bool cmdpreview_may_show(bool redrawing)
   assert(cp_info != NULL);
 
   bool was_enabled = cp_info->enabled;
-
   cp_info->cmdpreview_type = 0;
 
   exarg_T ea;
@@ -2713,7 +2712,6 @@ static bool cmdpreview_may_show(bool redrawing)
     api_clear_error(&err);
     cp_info->cmdpreview_type = 0;
   }
-  cp_info->enabled = (cp_info->cmdpreview_type != 0);
 
   // If inccommand=split and preview callback returns 2, open preview window.
   if (cp_info->icm_split && cp_info->cmdpreview_type == 2) {
@@ -2727,7 +2725,7 @@ static bool cmdpreview_may_show(bool redrawing)
   }
 
   // If preview callback return value is nonzero, update screen now.
-  if (!redrawing && cp_info->enabled) {
+  if (!redrawing && cp_info->cmdpreview_type != 0) {
     int save_rd = RedrawingDisabled;
     RedrawingDisabled = 0;
     update_screen();
@@ -2740,6 +2738,7 @@ static bool cmdpreview_may_show(bool redrawing)
 
 end:
   xfree(cmdline);
+  cp_info->enabled = (cp_info->cmdpreview_type != 0);
   if ((was_enabled || cp_info->did_prepare) && !cp_info->enabled) {
     cmdpreview_close();
   }
